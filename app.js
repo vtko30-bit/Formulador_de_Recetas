@@ -25,11 +25,15 @@
 
   let state = {
     user: null,
+    isSuperuser: false,
     recetas: [],
     baseIngredientes: [],
     editingRecipeId: null,
     view: "recetas",
   };
+  function updateUserRole(user) {
+    state.isSuperuser = !!(user && user.app_metadata && user.app_metadata.role === "superusuario");
+  }
 
   function showScreen(id) {
     document.querySelectorAll(".screen").forEach(function (el) {
@@ -59,6 +63,8 @@
     } else if (viewName === "ingredientes") {
       await loadBaseIngredientes();
       renderBaseIngredientes();
+      var actionsEl = document.querySelector(".ingredientes-base-actions");
+      if (actionsEl) actionsEl.classList.toggle("hidden", !state.isSuperuser);
     }
   }
 
@@ -104,6 +110,7 @@
     }
     const { data: { session } } = await sb.auth.getSession();
     state.user = session?.user || null;
+    updateUserRole(state.user);
     if (state.user) {
       showScreen("app-screen");
       showView("recetas");
@@ -113,6 +120,7 @@
     }
     sb.auth.onAuthStateChange(function (event, session) {
       state.user = session?.user || null;
+      updateUserRole(state.user);
       if (state.user) {
         showScreen("app-screen");
         showView("recetas");
@@ -211,7 +219,7 @@
     if (!sb || !state.user) return;
     const { data, error } = await sb
       .from("recetas")
-      .select("id, nombre, temperatura, descripcion, ingredientes_lineas, updated_at")
+      .select("id, user_id, nombre, temperatura, descripcion, ingredientes_lineas, publica, updated_at")
       .order("updated_at", { ascending: false });
     if (error) {
       console.error(error);
@@ -234,7 +242,12 @@
       const li = document.createElement("li");
       li.className = "recipe-item";
       const temp = r.temperatura != null ? " · " + r.temperatura + " °C" : "";
-      li.innerHTML = "<strong>" + escapeHtml(r.nombre) + "</strong>" + temp;
+      const badge = r.publica ? " <span class='badge-publica'>Pública</span>" : "";
+      const esMia = state.user && r.user_id === state.user.id;
+      const esDeOtro = state.user && !esMia && state.isSuperuser;
+      const badgeMia = esMia ? " <span class='badge-mia'>Tuya</span>" : "";
+      const badgeOtro = esDeOtro ? " <span class='badge-otro'>De otro</span>" : "";
+      li.innerHTML = "<strong>" + escapeHtml(r.nombre) + "</strong>" + temp + badge + badgeMia + badgeOtro;
       li.addEventListener("click", function () {
         openRecipeDetail(r.id);
       });
@@ -278,6 +291,43 @@
     }
     document.getElementById("recipe-detail-table").innerHTML = tableHtml;
     state.editingRecipeId = id;
+    var detailActions = document.querySelector("#detail-section .detail-actions");
+    var shareRow = document.querySelector("#detail-section .detail-share-row");
+    var publicaRow = document.getElementById("detail-publica-row");
+    var btnTogglePublicaText = document.getElementById("btn-toggle-publica-text");
+    var puedeGestionar = state.user && (receta.user_id === state.user.id || state.isSuperuser);
+    if (detailActions) detailActions.classList.toggle("hidden", !puedeGestionar);
+    if (shareRow) shareRow.classList.toggle("hidden", !puedeGestionar);
+    if (publicaRow && btnTogglePublicaText) {
+      publicaRow.classList.toggle("hidden", !puedeGestionar);
+      if (puedeGestionar) {
+        btnTogglePublicaText.textContent = receta.publica ? "Despublicar receta" : "Publicar receta";
+        var btnToggle = document.getElementById("btn-toggle-publica");
+        if (btnToggle) {
+          btnToggle.onclick = function () { togglePublicaReceta(id); };
+        }
+      }
+    }
+  }
+
+  async function togglePublicaReceta(id) {
+    var receta = state.recetas.find(function (r) { return r.id === id; });
+    if (!receta || !state.user) return;
+    if (receta.user_id !== state.user.id && !state.isSuperuser) return;
+    var nuevaPublica = !receta.publica;
+    var sb = getSupabase();
+    if (!sb) return;
+    var btnText = document.getElementById("btn-toggle-publica-text");
+    if (btnText) btnText.textContent = "Guardando…";
+    var err = (await sb.from("recetas").update({ publica: nuevaPublica }).eq("id", id)).error;
+    if (err) {
+      showToast("Error: " + (err.message || "no se pudo actualizar"));
+      if (btnText) btnText.textContent = receta.publica ? "Despublicar receta" : "Publicar receta";
+      return;
+    }
+    receta.publica = nuevaPublica;
+    if (btnText) btnText.textContent = nuevaPublica ? "Despublicar receta" : "Publicar receta";
+    showToast(nuevaPublica ? "Receta publicada. Todos la pueden ver." : "Receta despublicada. Solo tú la ves.");
   }
 
   async function openRecipeForm(id) {
@@ -290,6 +340,8 @@
     document.getElementById("recipe-name").value = receta ? receta.nombre : "";
     document.getElementById("recipe-temperatura").value = receta && receta.temperatura != null ? receta.temperatura : "";
     document.getElementById("recipe-desc").value = receta ? (receta.descripcion || "") : "";
+    var chkPublica = document.getElementById("recipe-publica");
+    if (chkPublica) chkPublica.checked = !!(receta && receta.publica);
     const lineas = (receta && Array.isArray(receta.ingredientes_lineas)) ? receta.ingredientes_lineas : [];
     document.getElementById("list-section").classList.add("hidden");
     document.getElementById("detail-section").classList.add("hidden");
@@ -627,8 +679,10 @@
     const ingredientes_lineas = getIngredientesLineasFromForm();
     const sb = getSupabase();
     if (!sb || !state.user) return;
+    const ownerId = (id && state.recetas.find(function (r) { return r.id === id; })) ? state.recetas.find(function (r) { return r.id === id; }).user_id : state.user.id;
     const nombreNorm = nombre.toLowerCase();
-    const nombreRepetido = state.recetas.some(function (r) {
+    const misRecetas = state.recetas.filter(function (r) { return r.user_id === ownerId; });
+    const nombreRepetido = misRecetas.some(function (r) {
       if (id && r.id == id) return false;
       return (r.nombre || "").toLowerCase().trim() === nombreNorm;
     });
@@ -636,12 +690,15 @@
       showToast("Ya existe una receta con ese nombre.");
       return;
     }
+    var chkPublica = document.getElementById("recipe-publica");
+    const recetaExistente = id ? state.recetas.find(function (r) { return r.id === id; }) : null;
     const row = {
-      user_id: state.user.id,
+      user_id: (id && recetaExistente) ? recetaExistente.user_id : state.user.id,
       nombre,
       temperatura: isNaN(temperatura) ? null : temperatura,
       descripcion,
       ingredientes_lineas,
+      publica: !!(chkPublica && chkPublica.checked),
     };
     if (id) {
       const { error } = await sb.from("recetas").update(row).eq("id", id);
@@ -777,6 +834,9 @@
     tbody.innerHTML = "";
     list.forEach(function (b) {
       const tr = document.createElement("tr");
+      var accionesCell = state.isSuperuser
+        ? "<td><button type='button' class='btn ghost small btn-edit-base' data-id='" + b.id + "'>Editar</button> <button type='button' class='btn danger small btn-delete-base' data-id='" + b.id + "'>Eliminar</button></td>"
+        : "<td></td>";
       tr.innerHTML =
         "<td>" + escapeHtml(b.ingrediente) + "</td>" +
         "<td style='text-align: right;'>" + (b.pct_graso ?? "") + "</td>" +
@@ -784,13 +844,11 @@
         "<td style='text-align: right;'>" + (b.pac ?? "") + "</td>" +
         "<td style='text-align: right;'>" + (b.solidos_totales ?? "") + "</td>" +
         "<td style='text-align: right;'>" + (b.precio ?? "") + "</td>" +
-        "<td><button type='button' class='btn ghost small btn-edit-base' data-id='" + b.id + "'>Editar</button> <button type='button' class='btn danger small btn-delete-base' data-id='" + b.id + "'>Eliminar</button></td>";
-      tr.querySelector(".btn-edit-base").addEventListener("click", function () {
-        openModalIngrediente(b.id);
-      });
-      tr.querySelector(".btn-delete-base").addEventListener("click", function () {
-        deleteBaseIngrediente(b.id);
-      });
+        accionesCell;
+      if (state.isSuperuser) {
+        tr.querySelector(".btn-edit-base").addEventListener("click", function () { openModalIngrediente(b.id); });
+        tr.querySelector(".btn-delete-base").addEventListener("click", function () { deleteBaseIngrediente(b.id); });
+      }
       tbody.appendChild(tr);
     });
     if (empty) {

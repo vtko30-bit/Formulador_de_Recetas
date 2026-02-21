@@ -5,6 +5,8 @@
   --primary: #1e3a5f;
   --primary-light: #2d4a73;
   --accent: #0d9488;
+  --accent-pastel: #00BFFF;
+  --accent-pastel-hover: #0099cc;
   --text: #1e293b;
   --text-muted: #64748b;
   --border: #e2e8f0;
@@ -413,17 +415,39 @@ body {
 .detail-table th, .detail-table td { padding: 8px; border: 1px solid var(--border); }
 .detail-table th:nth-child(n+2), .detail-table td:nth-child(n+2) { text-align: center !important; }
 
-/* Menú Compartir en detalle de receta */
-#detail-section .detail-share-row {
+/* Fila Publicar + Compartir en detalle de receta */
+#detail-section .detail-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
   margin-top: 12px;
   margin-bottom: 12px;
   width: 100%;
+}
+#detail-section .detail-publica-row {
+  margin: 0;
+}
+#detail-section .detail-publica-row .btn {
+  font-size: 0.9rem;
+}
+#detail-section .detail-share-row {
+  margin: 0;
   text-align: right;
 }
 #detail-section .detail-share-row .share-menu-wrap {
   display: inline-block;
-  margin-left: auto;
-  margin-right: 0;
+}
+#detail-section .detail-actions-row .btn.primary {
+  background: var(--accent-pastel);
+  color: #fff;
+  font-weight: bold;
+}
+#detail-section .detail-actions-row .btn.primary:hover {
+  background: var(--accent-pastel-hover);
+  color: #fff;
+  font-weight: bold;
 }
 .share-menu-wrap { position: relative; display: inline-block; }
 .btn-share-with-icon { display: inline-flex; align-items: center; gap: 6px; }
@@ -548,6 +572,57 @@ body {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
+
+/* Checkbox "Publicar receta" */
+.label-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+  cursor: pointer;
+}
+.label-checkbox input[type="checkbox"] { width: auto; margin: 0; }
+.label-checkbox span { user-select: none; }
+
+.ingredientes-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ingredientes-header-row .ingredientes-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0;
+}
+.ingredientes-header-row .label-checkbox-right {
+  margin: 0;
+}
+.ingredientes-header-row .label-checkbox-right input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid #dc2626;
+  border-radius: 4px;
+}
+
+/* Badges en lista de recetas */
+.badge-publica, .badge-mia {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+.badge-publica { background: var(--accent); color: #fff; }
+.badge-mia { background: var(--primary-light); color: #fff; }
+.badge-otro { background: var(--text-muted); color: #fff; }
+
 
 @media (max-width: 600px) {
   .header { flex-direction: column; align-items: stretch; }

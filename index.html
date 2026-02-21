@@ -86,8 +86,14 @@
                 <label for="recipe-desc">Descripción</label>
                 <textarea id="recipe-desc" rows="2" placeholder="Notas opcionales"></textarea>
               </div>
-              <div class="field">
-                <label>Ingredientes (cantidad en gramos)</label>
+              <div class="field field-ingredientes-header">
+                <div class="ingredientes-header-row">
+                  <label class="ingredientes-label">Ingredientes (cantidad en gramos)</label>
+                  <label class="label-checkbox label-checkbox-right">
+                    <input type="checkbox" id="recipe-publica" />
+                    <span>Publicar receta</span>
+                  </label>
+                </div>
                 <div class="table-wrap">
                   <table class="ingredientes-table">
                     <thead>
@@ -165,7 +171,13 @@
             </div>
             <article class="recipe-detail">
               <div id="recipe-detail-top"></div>
-              <div class="detail-share-row" style="text-align: right;">
+              <div class="detail-actions-row">
+                <div class="detail-publica-row hidden" id="detail-publica-row">
+                  <button type="button" class="btn primary small" id="btn-toggle-publica" title="Cambiar visibilidad">
+                    <span id="btn-toggle-publica-text">Publicar receta</span>
+                  </button>
+                </div>
+                <div class="detail-share-row">
                 <div class="share-menu-wrap">
                   <button type="button" class="btn primary small btn-share-with-icon" id="btn-share-toggle" title="Compartir receta">
                     <svg class="share-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -175,6 +187,7 @@
                     <button type="button" class="share-dropdown-item" id="btn-share-pdf">Descargar PDF</button>
                     <button type="button" class="share-dropdown-item" id="btn-share-excel">Descargar Excel</button>
                   </div>
+                </div>
                 </div>
               </div>
               <div id="recipe-detail-table"></div>
