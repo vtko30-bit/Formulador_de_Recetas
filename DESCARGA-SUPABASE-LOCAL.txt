@@ -1,0 +1,25 @@
+OBLIGATORIO: La app ahora usa solo el archivo local supabase.min.js (no CDN).
+Debes tener el archivo supabase.min.js en esta carpeta para que funcione.
+
+--- Cómo obtener supabase.min.js ---
+
+Opción A – Desde otro dispositivo (móvil con datos, otra red):
+1. Abre en el navegador uno de estos enlaces:
+   https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js
+   https://unpkg.com/@supabase/supabase-js@2/dist/supabase.min.js
+2. Menú del navegador → "Guardar página como" / "Save as".
+3. Guarda como: supabase.min.js (en la carpeta "Recetas de Helados").
+4. Si lo descargaste en el móvil, pásalo al PC (USB, correo, nube) a esa carpeta.
+
+Opción B – Desde el mismo PC (si en algún momento tienes otra red):
+1. Abre el enlace de arriba en Chrome/Edge.
+2. Ctrl+S → guardar como supabase.min.js en:
+   C:\Users\Lenovo\Proyectos\Recetas de Helados
+
+Opción C – Con PowerShell (en esta carpeta):
+   Invoke-WebRequest -Uri "https://unpkg.com/@supabase/supabase-js@2/dist/supabase.min.js" -OutFile "supabase.min.js" -UseBasicParsing
+   (Si falla por red, usa la Opción A o B.)
+
+--- Después de tener supabase.min.js ---
+Abre la app con: npx serve .
+Luego entra en: http://localhost:3000

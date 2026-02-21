@@ -1,0 +1,8 @@
+{
+  "name": "recetas-helados",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/generate-config.js",
+    "generate-config": "node scripts/generate-config.js"
+  }
+}

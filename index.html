@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="theme-color" content="#1e3a5f" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1e3a5f" media="(prefers-color-scheme: dark)" />
+    <title>Formulador Recetas de Helados</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css?v=3" />
+  </head>
+  <body>
+    <!-- Login -->
+    <div id="login-screen" class="screen login-screen">
+      <div class="login-card">
+        <div class="login-logo">🍦</div>
+        <h1>Formulador Recetas de Helados</h1>
+        <p class="login-subtitle">Inicia sesión para ver y crear tus fórmulas</p>
+        <form id="login-form" class="login-form">
+          <div class="field">
+            <label for="login-email">Correo</label>
+            <input id="login-email" type="email" required placeholder="tu@correo.com" autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" type="password" required placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <p id="login-message" class="message error hidden"></p>
+          <div class="login-actions">
+            <button type="submit" class="btn primary">Entrar</button>
+            <button type="button" class="btn secondary" id="btn-register">Crear cuenta</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- App principal -->
+    <div id="app-screen" class="screen app-screen hidden">
+      <div id="offline-banner" class="offline-banner hidden">Sin conexión. Los cambios se guardarán al reconectar.</div>
+
+      <header class="header">
+        <h1 class="header-title">🍦 Formulador Helados</h1>
+        <nav class="header-nav">
+          <button type="button" class="nav-btn active" data-view="recetas">Recetas</button>
+          <button type="button" class="nav-btn" data-view="ingredientes">Ingredientes</button>
+        </nav>
+        <div class="header-actions">
+          <button type="button" class="btn icon" id="btn-new-recipe" title="Nueva receta">Nueva Receta</button>
+          <button type="button" class="btn ghost small" id="btn-logout" title="Cerrar sesión">Salir</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <!-- Vista: Lista de recetas -->
+        <section id="view-recetas" class="view">
+          <div id="list-section" class="list-section">
+            <div class="search-wrap">
+              <input type="search" id="search-recipe" placeholder="Buscar receta..." class="search-input" />
+            </div>
+            <ul id="recipe-list" class="recipe-list"></ul>
+            <p id="empty-state" class="empty-state hidden">No hay recetas. Crea una con Nueva Receta</p>
+          </div>
+
+          <section id="form-section" class="form-section hidden">
+            <div class="form-header">
+              <h2 id="form-title">Nueva fórmula</h2>
+              <button type="button" class="btn ghost small" id="btn-back-list">← Volver</button>
+            </div>
+            <form id="recipe-form" class="recipe-form">
+              <input type="hidden" id="recipe-id" />
+              <div class="field-row">
+                <div class="field">
+                  <label for="recipe-name">Nombre de la receta *</label>
+                  <input id="recipe-name" type="text" required placeholder="Ej: Helado de fresa" />
+                </div>
+                <div class="field field-small">
+                  <label for="recipe-temperatura">Temperatura (°C)</label>
+                  <input id="recipe-temperatura" type="number" step="0.1" placeholder="-14" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="recipe-desc">Descripción</label>
+                <textarea id="recipe-desc" rows="2" placeholder="Notas opcionales"></textarea>
+              </div>
+              <div class="field">
+                <label>Ingredientes (cantidad en gramos)</label>
+                <div class="table-wrap">
+                  <table class="ingredientes-table">
+                    <thead>
+                      <tr>
+                        <th>Ingrediente</th>
+                        <th class="col-num" style="text-align: right;">Cant. (g)</th>
+                        <th class="col-num" style="text-align: right;">% MG</th>
+                        <th class="col-num" style="text-align: right;">S.N.G</th>
+                        <th class="col-num" style="text-align: right;">Sólidos tot.</th>
+                        <th class="col-num" style="text-align: right;">P.O.D</th>
+                        <th class="col-num" style="text-align: right;">P.A.C</th>
+                        <th class="col-num" style="text-align: right;">Precio</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="ingredientes-tbody"></tbody>
+                    <tfoot>
+                      <tr class="ingredientes-totales-row">
+                        <th>Totales</th>
+                        <th class="col-num" id="total-cantidad" style="text-align: right;"></th>
+                        <th class="col-num" id="total-grasa" style="text-align: right;"></th>
+                        <th class="col-num" id="total-solidos" style="text-align: right;"></th>
+                        <th class="col-num" id="total-solidos-tot" style="text-align: right;"></th>
+                        <th class="col-num" id="total-pod" style="text-align: right;"></th>
+                        <th class="col-num" id="total-pac" style="text-align: right;"></th>
+                        <th class="col-num" id="total-precio" style="text-align: right;"></th>
+                        <th></th>
+                      </tr>
+                      <tr class="ingredientes-porcentajes-row">
+                        <th>% del total</th>
+                        <th class="col-num" id="pct-cantidad" style="text-align: right;"></th>
+                        <th class="col-num" id="pct-grasa" style="text-align: right;"></th>
+                        <th class="col-num" id="pct-solidos" style="text-align: right;"></th>
+                        <th class="col-num" id="pct-solidos-tot" style="text-align: right;"></th>
+                        <th class="col-num" id="pct-pod" style="text-align: right;"></th>
+                        <th class="col-num" id="pct-pac" style="text-align: right;"></th>
+                        <th class="col-num" style="text-align: right;"></th>
+                        <th></th>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <button type="button" class="btn secondary small" id="btn-add-linea">+ Añadir línea</button>
+              </div>
+              <div class="form-actions-and-resumen">
+              <div class="form-actions">
+                <button type="submit" class="btn primary">Guardar receta</button>
+                <button type="button" class="btn ghost" id="btn-cancel-recipe">Cancelar</button>
+              </div>
+              <div class="form-resumen-bar">
+                <div class="resumen-box">
+                  <span class="resumen-label">Temperatura de Servicio</span>
+                  <span class="resumen-value-rec"><span class="resumen-value" id="resumen-temperatura">—</span></span>
+                </div>
+                <div class="resumen-box">
+                  <span class="resumen-label">Costo por Litro</span>
+                  <span class="resumen-value-rec"><span class="resumen-value" id="resumen-costo-litro">—</span></span>
+                </div>
+                <div class="resumen-box">
+                  <span class="resumen-label">Total (g)</span>
+                  <span class="resumen-value-rec"><span class="resumen-value" id="resumen-total-cant">—</span></span>
+                </div>
+              </div>
+            </div>
+            </form>
+          </section>
+
+          <section id="detail-section" class="detail-section hidden">
+            <div class="detail-header">
+              <button type="button" class="btn ghost small" id="btn-back-from-detail">← Volver</button>
+              <div class="detail-actions">
+                <button type="button" class="btn secondary small" id="btn-edit-recipe">Editar</button>
+                <button type="button" class="btn danger small" id="btn-delete-recipe">Eliminar</button>
+              </div>
+            </div>
+            <article class="recipe-detail">
+              <div id="recipe-detail-top"></div>
+              <div class="detail-share-row" style="text-align: right;">
+                <div class="share-menu-wrap">
+                  <button type="button" class="btn primary small btn-share-with-icon" id="btn-share-toggle" title="Compartir receta">
+                    <svg class="share-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    <span>Compartir</span>
+                  </button>
+                  <div class="share-dropdown hidden" id="share-dropdown">
+                    <button type="button" class="share-dropdown-item" id="btn-share-pdf">Descargar PDF</button>
+                    <button type="button" class="share-dropdown-item" id="btn-share-excel">Descargar Excel</button>
+                  </div>
+                </div>
+              </div>
+              <div id="recipe-detail-table"></div>
+            </article>
+          </section>
+        </section>
+
+        <!-- Vista: Ingredientes -->
+        <section id="view-ingredientes" class="view hidden">
+          <div class="contenido-ingredientes">
+            <div class="ingredientes-base-header">
+              <h2>Ingredientes</h2>
+              <div class="ingredientes-base-actions">
+                <button type="button" class="btn secondary small" id="btn-import-excel">📥 Importar desde Excel</button>
+                <button type="button" class="btn primary small" id="btn-new-ingrediente">+ Nuevo ingrediente</button>
+              </div>
+            </div>
+            <div class="search-wrap">
+              <input type="search" id="search-ingrediente" placeholder="Buscar ingrediente..." class="search-input" />
+            </div>
+            <input type="file" id="input-import-excel" accept=".xlsx,.xls" style="display:none" />
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ingrediente</th>
+                    <th style="text-align: right;">% MG</th>
+                    <th style="text-align: right;">P.O.D</th>
+                    <th style="text-align: right;">P.A.C</th>
+                    <th style="text-align: right;">S.N.G</th>
+                    <th style="text-align: right;">Precio/kg</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="base-ingredientes-tbody"></tbody>
+              </table>
+            </div>
+            <p id="empty-ingredientes" class="empty-state hidden">No hay ingredientes. Añade los que uses en tus recetas.</p>
+          </div>
+        </section>
+
+        <!-- Modal ingrediente base -->
+        <dialog id="modal-ingrediente" class="modal">
+          <form id="form-ingrediente-base">
+            <h3 id="modal-ingrediente-title">Nuevo ingrediente</h3>
+            <input type="hidden" id="base-ingrediente-id" />
+            <div class="field">
+              <label for="base-ingrediente-nombre">Ingrediente *</label>
+              <input id="base-ingrediente-nombre" type="text" required placeholder="Ej: Leche" autocomplete="off" />
+              <p id="modal-ingrediente-error" class="message error hidden" role="alert"></p>
+            </div>
+            <div class="field-row" id="modal-ingrediente-resto">
+              <div class="field"><label for="base-pct-graso">% MG</label><input id="base-pct-graso" type="number" step="0.0001" value="0" /></div>
+              <div class="field"><label for="base-pod">P.O.D</label><input id="base-pod" type="number" step="0.0001" value="0" /></div>
+              <div class="field"><label for="base-pac">P.A.C</label><input id="base-pac" type="number" step="0.0001" value="0" /></div>
+              <div class="field"><label for="base-solidos">S.N.G</label><input id="base-solidos" type="number" step="0.0001" value="0" /></div>
+            </div>
+            <div class="field">
+              <label for="base-precio">Precio</label>
+              <input id="base-precio" type="number" step="0.0001" value="0" />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn primary">Guardar</button>
+              <button type="button" class="btn ghost" id="btn-cerrar-modal-ingrediente">Cancelar</button>
+            </div>
+          </form>
+        </dialog>
+
+      </main>
+    </div>
+
+    <div id="toast" class="toast hidden" aria-live="polite"></div>
+
+    <script src="supabase.min.js"></script>
+    <script src="xlsx.min.js"></script>
+    <script src="config.js"></script>
+    <script src="app.js?v=3"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js").catch(function () {});
+      }
+    </script>
+  </body>
+</html>

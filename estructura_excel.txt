@@ -1,0 +1,64 @@
+=== ESTRUCTURA DEL EXCEL ===
+
+Hojas: FORMULA AQUÍ 🔥, HELADO DE FRESA - form, BASE DATOS INGREDIENTES
+
+
+--- Hoja: FORMULA AQUÍ 🔥 ---
+Columnas:  |  | FORMULA AQUÍ TU RECETA :)
+Filas de datos (primeras 15):
+  1:  |  |  |  |  |  |  | -14 C 
+  2:  |  | INGREDIENTES |  | PORCENTAJE GRASO | SÓLIDOS TOTALES | P.O.D | P.A.C | LACTOSA | PROTEÍNA
+  3:  |  | Leche | 267.0 | 0.9612 | 3.204 | 2.136 | 13.35 | 13.35 | 1.0413
+  4:  |  | Crema/Nata 35% GRASA | 160.0 | 5.6 | 6.528 | 1.2032 | 7.52 | 7.52 | 0.176
+  5:  |  | LPD | 68.0 | 0 | 6.8 | 5.6576 | 34 | 34 | 2.312
+  6:  |  | Sacarosa | 100.0 | 0 | 10 | 100 | 100 | 0 | 0
+  7:  |  | Dextrosa | 20.0 | 0 | 2 | 16 | 34.6 | 0 | 0
+  8:  |  | Fresa | 380.0 | 0 | 3.04 | 43.776 | 57.152 | 0 | 0
+  9:  |  | Neutro 5 | 5.0 | 0 | 0.5 | 0 | 0 | 0 | 0
+  10:  |  |  | 0.0 | 0 | 0 | 0 | 0 | 0 | 
+  11:  |  | 0.0 |  | 0 | 0 | 0 | 0 | 0 | 0
+  12:  |  | 0.0 |  | 0 | 0 | 0 | 0 | 0 | 0
+  13:  |  |  |  | 0 | 0 | 0 | 0 | 0 | 0
+  14:  |  |  |  | 0 | 0 | 0 | 0 | 0 | 0
+  15:  |  |  |  | 0 | 0 | 0 | 0 | 0 | 0
+  ... (999 filas más)
+
+--- Hoja: HELADO DE FRESA - form ---
+Columnas:  |  | FORMULA AQUÍ TU RECETA :)
+Filas de datos (primeras 15):
+  1:  |  |  |  |  |  |  | -12.0
+  2:  |  | INGREDIENTES |  | PORCENTAJE GRASO | SÓLIDOS TOTALES | P.O.D | P.A.C | LACTOSA | PROTEÍNA
+  3:  |  | Leche | 267.0 | 0.9612 | 3.204 | 2.136 | 13.35 | 13.35 | 1.0413
+  4:  |  | Crema/Nata 35% GRASA | 160.0 | 5.6 | 6.528 | 1.2032 | 7.52 | 7.52 | 0.176
+  5:  |  | LPD | 68.0 | 0 | 6.8 | 5.6576 | 34 | 34 | 2.312
+  6:  |  | Sacarosa | 100.0 | 0 | 10 | 100 | 100 | 0 | 0
+  7:  |  | Dextrosa | 20.0 | 0 | 2 | 16 | 34.6 | 0 | 0
+  8:  |  | Fresa | 380.0 | 0 | 3.04 | 43.776 | 57.152 | 0 | 0
+  9:  |  | Neutro 5 | 5.0 | 0 | 0.5 | 0 | 0 | 0 | 0
+  10:  |  |  | 0.0 | 0 | 0 | 0 | 0 | 0 | 0
+  11:  |  | 0.0 | 0.0 | 0 | 0 | 0 | 0 | 0 | 0
+  12:  |  | 0.0 | 0.0 | 0 | 0 | 0 | 0 | 0 | 0
+  13:  |  | 0.0 | 0.0 | 0 | 0 | 0 | 0 | 0 | 0
+  14:  |  | 0.0 | 0.0 | 0 | 0 | 0 | 0 | 0 | 0
+  15:  |  |  |  | 0 | 0 | 0 | 0 | 0 | 0
+  ... (999 filas más)
+
+--- Hoja: BASE DATOS INGREDIENTES ---
+Columnas: INGREDIENTES | PORCENTAJE GRASO | SÓLIDOS TOTALES | P.O.D | P.A.C | LACTOSA | PROTEÍNA
+Filas de datos (primeras 15):
+  1: Leche | 3.6 | 12 | 0.8 | 5.0 | 5.0 | 3.9
+  2: Crema/Nata 35% GRASA | 35.0 | 40.8 | 0.752 | 4.7 | 4.7 | 1.1 |  | NOTA IMPORTANTE: En esta tabla debes agregar los d
+  3: Agua | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |  | QUE TÚ UTILICES, así tendrás la receta lo más bala
+  4: Sacarosa | 0.0 | 100.0 | 100.0 | 100.0 | 0.0 | 0.0
+  5: Dextrosa | 0.0 | 100.0 | 80.0 | 173.0 | 0.0 | 0.0
+  6: Lactosa | 0.0 | 100.0 | 16.0 | 100.0 | 100.0 | 0.0
+  7: Maltodextrina 12DE | 0.0 | 100.0 | 15.0 | 23.0 | 0.0 | 0.0
+  8: Maltodextrina 18DE | 0.0 | 100.0 | 5.0 | 34.0 | 0.0 | 0.0
+  9: Glucosa 33DE | 0.0 | 100.0 | 24.0 | 56.0 | 0.0 | 0.0
+  10: Glucosa 38DE | 0.0 | 100.0 | 29.0 | 68.0 | 0.0 | 0.0
+  11: Glucosa 40DE | 0.0 | 40.0 | 45.0 | 108.0 | 0.0 | 0.0
+  12: Glucosa 60DE | 0.0 | 40.0 | 57.0 | 114.0 | 0.0 | 0.0
+  13: Azúcar invertida | 0.0 | 72.0 | 120.0 | 190.0 | 0.0 | 0.0
+  14: Fructosa | 0.0 | 100.0 | 144.0 | 188.0 | 0.0 | 0.0
+  15: Trehalosa | 0.0 | 100.0 | 45.0 | 100.0 | 0.0 | 0.0
+  ... (999 filas más)
