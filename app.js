@@ -1197,11 +1197,12 @@
   }
 
   function loadConfigFromApi() {
-    return fetch("/api/config")
+    var url = (window.location.origin || "") + "/api/config";
+    return fetch(url)
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
-        if (d && d.url) window.RECETAS_SUPABASE_URL = d.url;
-        if (d && d.anonKey) window.RECETAS_SUPABASE_ANON_KEY = d.anonKey;
+        if (d && typeof d.url === "string") window.RECETAS_SUPABASE_URL = d.url;
+        if (d && typeof d.anonKey === "string") window.RECETAS_SUPABASE_ANON_KEY = d.anonKey;
       })
       .catch(function () {});
   }
