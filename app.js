@@ -8,11 +8,8 @@
       key: (window.RECETAS_SUPABASE_ANON_KEY || "").trim(),
     };
   }
-  const supabaseConfig = getSupabaseConfig();
-  const supabaseUrl = supabaseConfig.url;
-  const supabaseAnonKey = supabaseConfig.key;
-  const useSupabase = !!(supabaseUrl && supabaseAnonKey);
-  let supabase = null;
+  var supabaseUrl, supabaseAnonKey, useSupabase;
+  var supabase = null;
   function getSupabase() {
     if (supabase) return supabase;
     if (!supabaseUrl || !supabaseAnonKey) return null;
@@ -1199,12 +1196,30 @@
     }
   }
 
-  function init() {
+  function loadConfigFromApi() {
+    return fetch("/api/config")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (d && d.url) window.RECETAS_SUPABASE_URL = d.url;
+        if (d && d.anonKey) window.RECETAS_SUPABASE_ANON_KEY = d.anonKey;
+      })
+      .catch(function () {});
+  }
+
+  async function init() {
+    var cfg = getSupabaseConfig();
+    if (!cfg.url || !cfg.key) {
+      await loadConfigFromApi();
+      cfg = getSupabaseConfig();
+    }
+    supabaseUrl = cfg.url;
+    supabaseAnonKey = cfg.key;
+    useSupabase = !!(supabaseUrl && supabaseAnonKey);
     setup();
     initAuth();
   }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", function () { init(); });
   } else {
     init();
   }

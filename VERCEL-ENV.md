@@ -24,8 +24,8 @@ En Vercel la app genera `config.js` en el **build** a partir de variables de ent
 ## Cómo funciona
 
 - En el repo está `config.example.js` (sin claves) y **no** está `config.js` (está en `.gitignore`).
-- El script `scripts/generate-config.js` escribe `config.js` leyendo `process.env.RECETAS_SUPABASE_URL` y `process.env.RECETAS_SUPABASE_ANON_KEY`.
-- En Vercel, el **Build Command** es `npm run build`, que ejecuta ese script y genera `config.js` antes del deploy.
+- El script `scripts/generate-config.js` escribe `config.js` en el build leyendo las variables de entorno.
+- **Plan B:** Si `config.js` queda vacío, la app pide la config a **`/api/config`** (función serverless en Vercel que devuelve las mismas variables). Así la app funciona aunque el build no haya inyectado las claves.
 
 ## Desarrollo local
 
