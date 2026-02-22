@@ -327,7 +327,7 @@ body {
 #form-section .ingredientes-table th:first-child,
 #form-section .ingredientes-table td:first-child {
   width: 1%;
-  max-width: 240px;
+  max-width: 280px;
 }
 /* Ingrediente autocomplete (solo en formulario Nueva Receta) */
 #form-section .ingredientes-table td:first-child {
@@ -601,13 +601,13 @@ body {
   margin: 0;
 }
 .ingredientes-header-row .label-checkbox-right input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  min-height: 20px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
   cursor: pointer;
   flex-shrink: 0;
-  border: 2px solid #dc2626;
+  border: 3px solid #dc2626;
   border-radius: 4px;
 }
 
