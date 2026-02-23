@@ -45,7 +45,8 @@
       <header class="header">
         <h1 class="header-title">Formulador de Recetas</h1>
         <nav class="header-nav">
-          <button type="button" class="nav-btn active" data-view="recetas">Recetas</button>
+          <button type="button" class="nav-btn nav-btn-inicio" data-view="inicio">Inicio</button>
+          <button type="button" class="nav-btn" data-view="recetas">Recetas</button>
           <button type="button" class="nav-btn" data-view="ingredientes">Ingredientes</button>
           <button type="button" class="nav-btn nav-btn-usuarios hidden" data-view="usuarios">Usuarios</button>
         </nav>
@@ -58,9 +59,41 @@
       </header>
 
       <main class="main">
+        <!-- Vista: Inicio (accesos directos) -->
+        <section id="view-inicio" class="view">
+          <div class="contenido-inicio">
+            <h2 class="inicio-title">¿Qué quieres hacer?</h2>
+            <div class="inicio-cards">
+              <button type="button" class="inicio-card" id="card-recetas">
+                <span class="inicio-card-icon">📋</span>
+                <span class="inicio-card-label">Recetas</span>
+                <span class="inicio-card-desc">Ver y editar tus recetas</span>
+              </button>
+              <button type="button" class="inicio-card" id="card-ingredientes">
+                <span class="inicio-card-icon">🥛</span>
+                <span class="inicio-card-label">Ingredientes</span>
+                <span class="inicio-card-desc">Consultar la base de ingredientes</span>
+              </button>
+              <button type="button" class="inicio-card" id="card-nueva-receta">
+                <span class="inicio-card-icon">➕</span>
+                <span class="inicio-card-label">Nueva receta</span>
+                <span class="inicio-card-desc">Crear una nueva fórmula</span>
+              </button>
+              <button type="button" class="inicio-card inicio-card-usuarios hidden" id="card-usuarios">
+                <span class="inicio-card-icon">👥</span>
+                <span class="inicio-card-label">Usuarios</span>
+                <span class="inicio-card-desc">Gestionar roles</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         <!-- Vista: Lista de recetas -->
         <section id="view-recetas" class="view">
           <div id="list-section" class="list-section">
+            <div class="inicio-back-row">
+              <button type="button" class="btn ghost small btn-inicio-back" id="btn-inicio-from-recetas">← Inicio</button>
+            </div>
             <div class="search-wrap">
               <input type="search" id="search-recipe" placeholder="Buscar receta..." class="search-input" />
             </div>
@@ -135,7 +168,6 @@
                     </tfoot>
                   </table>
                 </div>
-                <button type="button" class="btn secondary small" id="btn-add-linea">+ Añadir línea</button>
               </div>
               <div class="form-actions-and-resumen">
               <div class="form-actions">
@@ -193,6 +225,9 @@
         <!-- Vista: Ingredientes -->
         <section id="view-ingredientes" class="view hidden">
           <div class="contenido-ingredientes">
+            <div class="inicio-back-row">
+              <button type="button" class="btn ghost small btn-inicio-back" id="btn-inicio-from-ingredientes">← Inicio</button>
+            </div>
             <div class="ingredientes-base-header">
               <h2>Ingredientes</h2>
               <div class="ingredientes-base-actions">
@@ -227,6 +262,9 @@
         <!-- Vista: Gestión de usuarios (solo superusuario) -->
         <section id="view-usuarios" class="view hidden">
           <div class="contenido-usuarios">
+            <div class="inicio-back-row">
+              <button type="button" class="btn ghost small btn-inicio-back" id="btn-inicio-from-usuarios">← Inicio</button>
+            </div>
             <h2>Gestión de usuarios</h2>
             <p class="usuarios-subtitle">Cambia el rol de cada usuario. El usuario debe cerrar sesión y volver a entrar para que el cambio se aplique.</p>
             <div class="table-wrap">

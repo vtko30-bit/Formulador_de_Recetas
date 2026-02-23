@@ -216,9 +216,37 @@ body {
   overflow-x: hidden;
   min-width: 0;
 }
-.main.view-ingredientes-activo { max-width: none; padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
 .view { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden; }
 .view-ingredientes-split { width: 100%; }
+
+/* Vista Inicio: tarjetas de acceso */
+.contenido-inicio { padding: 24px 16px; max-width: 600px; margin: 0 auto; }
+.inicio-title { margin: 0 0 24px; font-size: 1.25rem; color: var(--text); text-align: center; }
+.inicio-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.inicio-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  padding: 20px 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center;
+}
+.inicio-card:hover { background: #f8fafc; border-color: var(--primary-light); }
+.inicio-card:active { background: #f1f5f9; }
+.inicio-card-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+.inicio-card-label { font-size: 1rem; font-weight: 600; color: var(--text); display: block; }
+.inicio-card-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+.inicio-back-row { display: none; margin-bottom: 12px; }
+
 .form-section .table-wrap,
 .detail-section .table-wrap,
 .contenido-ingredientes .table-wrap {
@@ -321,10 +349,11 @@ body {
 .form-resumen-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
   margin-left: auto;
+  margin-right: 24px;
   width: fit-content;
-  padding: 16px;
+  padding: 12px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -333,11 +362,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
+  gap: 6px;
+  padding: 6px 0;
 }
 .form-resumen-bar .resumen-label {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: bold;
   color: var(--text-muted);
   white-space: nowrap;
@@ -347,15 +376,15 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
-  padding: 10px 16px;
+  min-width: 64px;
+  padding: 8px 12px;
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .form-resumen-bar .resumen-value {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
@@ -770,9 +799,12 @@ body {
     width: 100%;
     min-width: 0;
   }
+  .header-nav { display: none !important; }
+  .header-actions { display: flex !important; justify-content: flex-end; }
+  .header-actions .btn:not(.btn-icon-logout) { display: none !important; }
   .header-title {
     order: 0;
-    flex: none;
+    flex: 1;
     font-size: 0.95rem;
     text-align: center;
     min-width: 0;
@@ -781,36 +813,21 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .header-nav {
-    order: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
-    width: 100%;
-    min-width: 0;
+  .header-actions .btn-icon-logout {
+    position: absolute;
+    top: 50%;
+    right: max(10px, env(safe-area-inset-right));
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
   }
-  .header-nav .nav-btn {
-    min-width: 0;
-    min-height: 40px;
-    font-size: 0.8rem;
-    padding: 8px 4px;
-    text-align: center;
-  }
-  .header-actions {
-    order: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    width: 100%;
-    min-width: 0;
-  }
-  .header-actions .btn {
-    min-width: 0;
-    min-height: 40px;
-    font-size: 0.8rem;
-    padding: 8px 6px;
-  }
-  .btn-icon-logout { width: 100%; }
+  .inicio-back-row { display: block !important; }
+  .contenido-inicio { padding: 20px 12px; }
+  .inicio-cards { grid-template-columns: 1fr; gap: 12px; }
+  .inicio-card { min-height: 88px; padding: 16px; flex-direction: row; justify-content: flex-start; gap: 16px; text-align: left; }
+  .inicio-card-icon { font-size: 1.75rem; margin-bottom: 0; }
+  .inicio-card-label { font-size: 1rem; }
+  .inicio-card-desc { font-size: 0.8rem; margin-top: 2px; }
   .main {
     padding-left: max(10px, env(safe-area-inset-left));
     padding-right: max(10px, env(safe-area-inset-right));
@@ -851,6 +868,7 @@ body {
   }
   .form-actions-and-resumen .form-resumen-bar {
     margin-left: 0;
+    margin-right: 0;
     width: 100%;
     flex-direction: column;
     align-items: stretch;

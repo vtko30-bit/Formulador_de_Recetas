@@ -63,10 +63,14 @@
     const main = document.querySelector(".main");
     if (main) main.classList.toggle("view-ingredientes-activo", viewName === "ingredientes");
     if (viewName === "recetas") {
+      await loadRecetas();
       document.getElementById("list-section").classList.remove("hidden");
       document.getElementById("form-section").classList.add("hidden");
       document.getElementById("detail-section").classList.add("hidden");
       renderRecipeList();
+    } else if (viewName === "inicio") {
+      var cardUsuarios = document.querySelector(".inicio-card-usuarios");
+      if (cardUsuarios) cardUsuarios.classList.toggle("hidden", !state.isSuperuser);
     } else if (viewName === "ingredientes") {
       await loadBaseIngredientes();
       renderBaseIngredientes();
@@ -81,6 +85,8 @@
   function updateHeaderForRole() {
     var btnUsuarios = document.querySelector(".nav-btn-usuarios");
     if (btnUsuarios) btnUsuarios.classList.toggle("hidden", !state.isSuperuser);
+    var cardUsuarios = document.querySelector(".inicio-card-usuarios");
+    if (cardUsuarios) cardUsuarios.classList.toggle("hidden", !state.isSuperuser);
   }
 
   function showLoginMessage(msg) {
@@ -129,8 +135,7 @@
     updateHeaderForRole();
     if (state.user) {
       showScreen("app-screen");
-      showView("recetas");
-      loadRecetas();
+      showView("inicio");
       ensureMyProfile();
     } else {
       showScreen("login-screen");
@@ -141,8 +146,7 @@
       updateHeaderForRole();
       if (state.user) {
         showScreen("app-screen");
-        showView("recetas");
-        loadRecetas();
+        showView("inicio");
         ensureMyProfile();
       } else {
         showScreen("login-screen");
@@ -177,8 +181,7 @@
       showLoginMessage("");
       showToast("Sesión iniciada");
       showScreen("app-screen");
-      showView("recetas");
-      loadRecetas();
+      showView("inicio");
     } catch (err) {
       var msg = err && err.message ? err.message : String(err);
       showLoginMessage(msg);
@@ -212,8 +215,7 @@
       if (data.session) {
         showLoginMessage("");
         showScreen("app-screen");
-        showView("recetas");
-        loadRecetas();
+        showView("inicio");
       } else {
         showLoginMessage("Cuenta creada. Revisa tu correo para confirmar (o desactiva 'Confirm email' en Supabase).");
         showToast("Revisa tu correo para confirmar");
@@ -678,6 +680,17 @@
   function addLineaIngrediente() {
     const tbody = document.getElementById("ingredientes-tbody");
     appendIngredienteRow(tbody, {});
+  }
+
+  function addLineaYFocarPrimerInp() {
+    addLineaIngrediente();
+    const tbody = document.getElementById("ingredientes-tbody");
+    const rows = tbody.querySelectorAll("tr");
+    const lastRow = rows[rows.length - 1];
+    const firstInput = lastRow ? lastRow.querySelector(".inp-ingrediente") : null;
+    if (firstInput) {
+      firstInput.focus();
+    }
   }
 
   async function saveRecipe(e) {
@@ -1245,6 +1258,51 @@
       });
     });
 
+    var cardRecetas = document.getElementById("card-recetas");
+    if (cardRecetas) cardRecetas.addEventListener("click", function () { showView("recetas"); });
+    var cardIngredientes = document.getElementById("card-ingredientes");
+    if (cardIngredientes) cardIngredientes.addEventListener("click", function () { showView("ingredientes"); });
+    var cardNuevaReceta = document.getElementById("card-nueva-receta");
+    if (cardNuevaReceta) cardNuevaReceta.addEventListener("click", async function () {
+      await showView("recetas");
+      await openRecipeForm(null);
+    });
+    var cardUsuarios = document.getElementById("card-usuarios");
+    if (cardUsuarios) cardUsuarios.addEventListener("click", function () { showView("usuarios"); });
+
+    var recipeForm = document.getElementById("recipe-form");
+    if (recipeForm) {
+      recipeForm.addEventListener("keydown", function (e) {
+        var tbody = document.getElementById("ingredientes-tbody");
+        if (!tbody || !tbody.contains(e.target)) return;
+        if (!e.target.matches(".inp-ingrediente, .inp-cantidad")) return;
+        var tr = e.target.closest("tr");
+        var rows = tbody.querySelectorAll("tr");
+        var isLastRow = tr && rows.length && tr === rows[rows.length - 1];
+        var isCantidad = e.target.classList.contains("inp-cantidad");
+
+        if (e.key === "Enter") {
+          e.preventDefault();
+          addLineaYFocarPrimerInp();
+          return;
+        }
+        if (e.key === "Tab" && !e.shiftKey && isLastRow && isCantidad) {
+          e.preventDefault();
+          addLineaYFocarPrimerInp();
+          return;
+        }
+      });
+      recipeForm.addEventListener("submit", saveRecipe);
+    }
+
+    function goInicio() { showView("inicio"); }
+    var btnInicioFromRecetas = document.getElementById("btn-inicio-from-recetas");
+    if (btnInicioFromRecetas) btnInicioFromRecetas.addEventListener("click", goInicio);
+    var btnInicioFromIngredientes = document.getElementById("btn-inicio-from-ingredientes");
+    if (btnInicioFromIngredientes) btnInicioFromIngredientes.addEventListener("click", goInicio);
+    var btnInicioFromUsuarios = document.getElementById("btn-inicio-from-usuarios");
+    if (btnInicioFromUsuarios) btnInicioFromUsuarios.addEventListener("click", goInicio);
+
     const btnNewRecipe = document.getElementById("btn-new-recipe");
     if (btnNewRecipe) btnNewRecipe.addEventListener("click", async function () {
       await showView("recetas");
@@ -1292,11 +1350,6 @@
       document.getElementById("form-section").classList.add("hidden");
       document.getElementById("list-section").classList.remove("hidden");
     });
-
-    const recipeForm = document.getElementById("recipe-form");
-    if (recipeForm) recipeForm.addEventListener("submit", saveRecipe);
-    const btnAddLinea = document.getElementById("btn-add-linea");
-    if (btnAddLinea) btnAddLinea.addEventListener("click", addLineaIngrediente);
 
     const searchRecipe = document.getElementById("search-recipe");
     if (searchRecipe) searchRecipe.addEventListener("input", renderRecipeList);
