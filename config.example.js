@@ -1,4 +1,4 @@
-// Formulador Helados - Configuración Supabase (ejemplo)
+// Formulador de Recetas - Configuración Supabase (ejemplo)
 //
 // En Vercel: no hace falta config.js. Define en el proyecto las variables de entorno
 // RECETAS_SUPABASE_URL y RECETAS_SUPABASE_ANON_KEY; el build generará config.js.

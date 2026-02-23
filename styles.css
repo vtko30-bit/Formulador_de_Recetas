@@ -61,7 +61,7 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-.login-logo { font-size: 48px; text-align: center; margin-bottom: 8px; }
+.login-logo { text-align: center; margin-bottom: 8px; }
 .login-card h1 {
   margin: 0 0 8px;
   font-size: 1.35rem;
@@ -98,8 +98,17 @@ body {
 .login-actions .btn { flex: 1; }
 .message.error { color: var(--danger); font-size: 0.9rem; margin-top: 8px; }
 
-/* App header */
+/* App layout: cabecera fija y contenido con scroll */
+.app-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh; /* móvil: evita que la barra del navegador cambie la altura */
+  max-height: 100vh;
+  overflow: hidden;
+}
 .app-screen .header {
+  flex-shrink: 0;
   background: var(--primary);
   color: #fff;
   padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
@@ -111,7 +120,34 @@ body {
   top: 0;
   z-index: 10;
 }
+.app-screen .main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .header-title { margin: 0; font-size: 1.2rem; flex: 1; min-width: 0; }
+.btn-icon-logout {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-height: 44px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.btn-icon-logout:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
 .header-nav {
   display: flex;
   gap: 4px;
@@ -132,7 +168,20 @@ body {
   background: rgba(255,255,255,0.2);
   color: #fff;
 }
-.header-actions { display: flex; gap: 8px; align-items: center; }
+.header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+/* Botones del header visibles sobre fondo oscuro (Nueva Receta, Cerrar sesión) */
+.app-screen .header .header-actions .btn {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.app-screen .header .header-actions .btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+.app-screen .header .header-actions .btn .logout-icon {
+  stroke: currentColor;
+}
 
 /* Buttons: mín. 44px altura para touch (Android/iOS) */
 .btn {
@@ -244,7 +293,6 @@ body {
   .recipe-form input[type="number"],
   .recipe-form textarea { font-size: 0.95rem; }
 }
-#recipe-temperatura { font-weight: bold; }
 .field-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .field-row .field { flex: 1; min-width: 120px; }
 .field-small { max-width: 120px; }
@@ -283,6 +331,7 @@ body {
 }
 .form-resumen-bar .resumen-label {
   font-size: 0.85rem;
+  font-weight: bold;
   color: var(--text-muted);
   white-space: nowrap;
   text-align: center;
@@ -377,6 +426,13 @@ body {
   max-width: 120px;
   text-align: center !important;
   white-space: nowrap;
+}
+#form-section .ingredientes-table th:last-child,
+#form-section .ingredientes-table td:last-child {
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
+  text-align: center;
 }
 #form-section .ingredientes-table td:nth-child(2) input {
   width: 100%;
@@ -524,6 +580,11 @@ body {
   margin-left: 24px;
 }
 .contenido-ingredientes .search-wrap { margin-bottom: 12px; }
+
+.contenido-usuarios { padding: 16px; }
+.contenido-usuarios h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.usuarios-subtitle { margin: 0 0 16px; font-size: 0.9rem; color: var(--text-muted); }
+.contenido-usuarios .input-rol-usuario { padding: 6px 10px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.9rem; min-width: 120px; }
 .modal .field select {
   width: 100%;
   padding: 8px 10px;
@@ -619,6 +680,14 @@ body {
 }
 .ingredientes-header-row .label-checkbox-right {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ingredientes-header-row .label-checkbox-right span {
+  line-height: 18px;
+  display: flex;
+  align-items: center;
 }
 .ingredientes-header-row .label-checkbox-right input[type="checkbox"] {
   width: 18px;
@@ -627,8 +696,15 @@ body {
   min-height: 18px;
   cursor: pointer;
   flex-shrink: 0;
-  border: 3px solid #dc2626;
+  border: 3px solid #dc2626 !important;
   border-radius: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--surface);
+  accent-color: #dc2626;
+}
+.ingredientes-header-row .label-checkbox-right input[type="checkbox"]:checked {
+  background: #dc2626 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E") center/12px 12px no-repeat;
 }
 
 /* Badges en lista de recetas */
@@ -673,9 +749,9 @@ body {
     display: flex;
     justify-content: center;
     gap: 8px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
-  .header-actions .btn { flex: 1; min-width: 0; }
+  .header-actions .btn { flex: 1; min-width: 100px; }
 }
 
 @media (max-width: 600px) {

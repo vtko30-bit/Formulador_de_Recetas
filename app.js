@@ -26,13 +26,20 @@
   let state = {
     user: null,
     isSuperuser: false,
+    isEditor: false,
     recetas: [],
     baseIngredientes: [],
     editingRecipeId: null,
     view: "recetas",
+    userProfiles: [],
   };
   function updateUserRole(user) {
-    state.isSuperuser = !!(user && user.app_metadata && user.app_metadata.role === "superusuario");
+    var role = (user && user.app_metadata && user.app_metadata.role) || "";
+    state.isSuperuser = role === "superusuario";
+    state.isEditor = role === "editor";
+  }
+  function canManageAllRecetas() {
+    return state.isSuperuser || state.isEditor;
   }
 
   function showScreen(id) {
@@ -65,7 +72,15 @@
       renderBaseIngredientes();
       var actionsEl = document.querySelector(".ingredientes-base-actions");
       if (actionsEl) actionsEl.classList.toggle("hidden", !state.isSuperuser);
+    } else if (viewName === "usuarios") {
+      await loadUserProfiles();
+      renderUsuarios();
     }
+  }
+
+  function updateHeaderForRole() {
+    var btnUsuarios = document.querySelector(".nav-btn-usuarios");
+    if (btnUsuarios) btnUsuarios.classList.toggle("hidden", !state.isSuperuser);
   }
 
   function showLoginMessage(msg) {
@@ -99,32 +114,36 @@
   async function initAuth() {
     if (!useSupabase) {
       document.getElementById("login-screen").innerHTML =
-        "<div class='login-card'><h1>🍦 Formulador Helados</h1><p class='login-subtitle'>Configura <code>config.js</code> con tu URL y clave de Supabase para usar la app multiusuario.</p><p>Copia <code>config.example.js</code> a <code>config.js</code> y rellena <code>RECETAS_SUPABASE_URL</code> y <code>RECETAS_SUPABASE_ANON_KEY</code>.</p></div>";
+        "<div class='login-card'><h1>Formulador de Recetas</h1><p class='login-subtitle'>Configura <code>config.js</code> con tu URL y clave de Supabase para usar la app multiusuario.</p><p>Copia <code>config.example.js</code> a <code>config.js</code> y rellena <code>RECETAS_SUPABASE_URL</code> y <code>RECETAS_SUPABASE_ANON_KEY</code>.</p></div>";
       return;
     }
     const sb = getSupabase();
     if (!sb) {
       document.getElementById("login-screen").innerHTML =
-        "<div class='login-card'><h1>🍦 Formulador Helados</h1><p class='login-subtitle message error'>No se cargó la librería de Supabase.</p><p>Copia el archivo <strong>supabase.min.js</strong> en la carpeta del proyecto. Descárgalo desde <a href='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js' target='_blank'>cdn.jsdelivr.net</a> (Ctrl+S para guardar) o usa otra red si los CDN están bloqueados.</p></div>";
+        "<div class='login-card'><h1>Formulador de Recetas</h1><p class='login-subtitle message error'>No se cargó la librería de Supabase.</p><p>Copia el archivo <strong>supabase.min.js</strong> en la carpeta del proyecto. Descárgalo desde <a href='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js' target='_blank'>cdn.jsdelivr.net</a> (Ctrl+S para guardar) o usa otra red si los CDN están bloqueados.</p></div>";
       return;
     }
     const { data: { session } } = await sb.auth.getSession();
     state.user = session?.user || null;
     updateUserRole(state.user);
+    updateHeaderForRole();
     if (state.user) {
       showScreen("app-screen");
       showView("recetas");
       loadRecetas();
+      ensureMyProfile();
     } else {
       showScreen("login-screen");
     }
     sb.auth.onAuthStateChange(function (event, session) {
       state.user = session?.user || null;
       updateUserRole(state.user);
+      updateHeaderForRole();
       if (state.user) {
         showScreen("app-screen");
         showView("recetas");
         loadRecetas();
+        ensureMyProfile();
       } else {
         showScreen("login-screen");
       }
@@ -244,7 +263,7 @@
       const temp = r.temperatura != null ? " · " + r.temperatura + " °C" : "";
       const badge = r.publica ? " <span class='badge-publica'>Pública</span>" : "";
       const esMia = state.user && r.user_id === state.user.id;
-      const esDeOtro = state.user && !esMia && state.isSuperuser;
+      const esDeOtro = state.user && !esMia && canManageAllRecetas();
       const badgeMia = esMia ? " <span class='badge-mia'>Tuya</span>" : "";
       const badgeOtro = esDeOtro ? " <span class='badge-otro'>De otro</span>" : "";
       li.innerHTML = "<strong>" + escapeHtml(r.nombre) + "</strong>" + temp + badge + badgeMia + badgeOtro;
@@ -295,7 +314,7 @@
     var shareRow = document.querySelector("#detail-section .detail-share-row");
     var publicaRow = document.getElementById("detail-publica-row");
     var btnTogglePublicaText = document.getElementById("btn-toggle-publica-text");
-    var puedeGestionar = state.user && (receta.user_id === state.user.id || state.isSuperuser);
+    var puedeGestionar = state.user && (receta.user_id === state.user.id || canManageAllRecetas());
     if (detailActions) detailActions.classList.toggle("hidden", !puedeGestionar);
     if (shareRow) shareRow.classList.toggle("hidden", !puedeGestionar);
     if (publicaRow && btnTogglePublicaText) {
@@ -313,7 +332,7 @@
   async function togglePublicaReceta(id) {
     var receta = state.recetas.find(function (r) { return r.id === id; });
     if (!receta || !state.user) return;
-    if (receta.user_id !== state.user.id && !state.isSuperuser) return;
+    if (receta.user_id !== state.user.id && !canManageAllRecetas()) return;
     var nuevaPublica = !receta.publica;
     var sb = getSupabase();
     if (!sb) return;
@@ -338,7 +357,6 @@
       return r.id === id;
     }) : null;
     document.getElementById("recipe-name").value = receta ? receta.nombre : "";
-    document.getElementById("recipe-temperatura").value = receta && receta.temperatura != null ? receta.temperatura : "";
     document.getElementById("recipe-desc").value = receta ? (receta.descripcion || "") : "";
     var chkPublica = document.getElementById("recipe-publica");
     if (chkPublica) chkPublica.checked = !!(receta && receta.publica);
@@ -557,14 +575,12 @@
     if (elPctPod) elPctPod.textContent = fmtPct(pctPod);
     if (elPctPac) elPctPac.textContent = fmtPct(pctPac);
     var elTemp = document.getElementById("recipe-temperatura");
-    if (elTemp) {
-      var tempCalculada = (tPac !== 0 && !isNaN(tPac)) ? (Math.round((tPac / -2) * 10) / 10).toString() : "";
-      elTemp.value = tempCalculada;
-    }
+    var tempCalculada = (tPac !== 0 && !isNaN(tPac)) ? (Math.round((tPac / -2) * 10) / 10).toString() : "";
+    if (elTemp) elTemp.value = tempCalculada;
     var elResumenTemp = document.getElementById("resumen-temperatura");
     var elResumenCosto = document.getElementById("resumen-costo-litro");
     var elResumenCant = document.getElementById("resumen-total-cant");
-    if (elResumenTemp) elResumenTemp.textContent = (elTemp && elTemp.value.trim()) ? elTemp.value + " °C" : "—";
+    if (elResumenTemp) elResumenTemp.textContent = tempCalculada ? tempCalculada + " °C" : "—";
     if (elResumenCant) elResumenCant.textContent = tCant ? fmt(tCant) : "—";
     var denom = tCant > 0 ? tCant * 1.30 : 0;
     var costoPorLitro = denom > 0 ? (tPrecio / denom) * 1000 : null;
@@ -673,10 +689,14 @@
     }
     const id = document.getElementById("recipe-id").value || null;
     const nombre = document.getElementById("recipe-name").value.trim();
-    const tempVal = document.getElementById("recipe-temperatura").value.trim();
-    const temperatura = tempVal === "" ? null : parseFloat(tempVal);
     const descripcion = document.getElementById("recipe-desc").value.trim();
     const ingredientes_lineas = getIngredientesLineasFromForm();
+    var tPacForm = 0;
+    ingredientes_lineas.forEach(function (lin) {
+      var tot = (lin.cantidad || 0) * (parseFloat(lin.pac) || 0) / 100;
+      tPacForm += isNaN(tot) ? 0 : tot;
+    });
+    const temperatura = (tPacForm !== 0 && !isNaN(tPacForm)) ? (Math.round((tPacForm / -2) * 10) / 10) : null;
     const sb = getSupabase();
     if (!sb || !state.user) return;
     const ownerId = (id && state.recetas.find(function (r) { return r.id === id; })) ? state.recetas.find(function (r) { return r.id === id; }).user_id : state.user.id;
@@ -803,6 +823,74 @@
     win.focus();
     setTimeout(function () { win.print(); }, 250);
     showToast("Usa 'Guardar como PDF' en el cuadro de impresión.");
+  }
+
+  // --- Gestión de usuarios (solo superusuario) ---
+  async function ensureMyProfile() {
+    const sb = getSupabase();
+    if (!sb || !state.user) return;
+    try {
+      await sb.rpc("ensure_my_profile", { p_email: state.user.email || null });
+    } catch (e) {
+      console.warn("ensure_my_profile:", e);
+    }
+  }
+
+  async function loadUserProfiles() {
+    const sb = getSupabase();
+    if (!sb || !state.user) return;
+    const { data, error } = await sb.from("user_profiles").select("id, email, role").order("email");
+    if (error) {
+      console.error("loadUserProfiles:", error);
+      state.userProfiles = [];
+      return;
+    }
+    state.userProfiles = data || [];
+  }
+
+  function renderUsuarios() {
+    const tbody = document.getElementById("usuarios-tbody");
+    const empty = document.getElementById("empty-usuarios");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    var list = state.userProfiles || [];
+    if (empty) empty.classList.toggle("hidden", list.length > 0);
+    list.forEach(function (p) {
+      const tr = document.createElement("tr");
+      const roleVal = p.role || "usuario";
+      tr.innerHTML =
+        "<td>" + escapeHtml(p.email || "(sin correo)") + "</td>" +
+        "<td><select class='input-rol-usuario' data-id='" + escapeAttr(p.id) + "' data-email='" + escapeAttr(p.email || "") + "'>" +
+        "<option value='usuario'" + (roleVal === "usuario" ? " selected" : "") + ">Usuario</option>" +
+        "<option value='editor'" + (roleVal === "editor" ? " selected" : "") + ">Editor</option>" +
+        "<option value='superusuario'" + (roleVal === "superusuario" ? " selected" : "") + ">Superusuario</option>" +
+        "</select></td>" +
+        "<td><button type='button' class='btn primary small btn-guardar-rol' data-id='" + escapeAttr(p.id) + "'>Guardar</button></td>";
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll(".btn-guardar-rol").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-id");
+        var row = btn.closest("tr");
+        var sel = row ? row.querySelector(".input-rol-usuario") : null;
+        var newRole = sel ? sel.value : "usuario";
+        saveUserRole(id, newRole);
+      });
+    });
+  }
+
+  async function saveUserRole(userId, newRole) {
+    const sb = getSupabase();
+    if (!sb || !state.user || !state.isSuperuser) return;
+    var { error } = await sb.from("user_profiles").update({ role: newRole }).eq("id", userId);
+    if (error) {
+      showToast("Error al guardar: " + error.message);
+      return;
+    }
+    showToast("Rol actualizado. El usuario debe cerrar sesión y volver a entrar.");
+    var p = state.userProfiles.find(function (x) { return x.id === userId; });
+    if (p) p.role = newRole;
+    renderUsuarios();
   }
 
   // --- Base ingredientes ---
