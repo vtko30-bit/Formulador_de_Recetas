@@ -579,6 +579,37 @@ body {
 #view-ingredientes .contenido-ingredientes .table-wrap {
   margin-left: 24px;
 }
+#view-ingredientes .data-table th:first-child,
+#view-ingredientes .data-table td:first-child {
+  max-width: 220px;
+  width: 220px;
+  min-width: 220px;
+}
+#view-ingredientes .data-table th:nth-child(2),
+#view-ingredientes .data-table td:nth-child(2),
+#view-ingredientes .data-table th:nth-child(3),
+#view-ingredientes .data-table td:nth-child(3),
+#view-ingredientes .data-table th:nth-child(4),
+#view-ingredientes .data-table td:nth-child(4),
+#view-ingredientes .data-table th:nth-child(5),
+#view-ingredientes .data-table td:nth-child(5) {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+}
+#view-ingredientes .data-table th:nth-child(6),
+#view-ingredientes .data-table td:nth-child(6) {
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+}
+#view-ingredientes .data-table th:last-child,
+#view-ingredientes .data-table td:last-child {
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  white-space: nowrap;
+}
 .contenido-ingredientes .search-wrap { margin-bottom: 12px; }
 
 .contenido-usuarios { padding: 16px; }
