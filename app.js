@@ -8,6 +8,8 @@
       key: (window.RECETAS_SUPABASE_ANON_KEY || "").trim(),
     };
   }
+  const portalHomeUrl =
+    typeof window !== "undefined" ? String(window.RECETAS_PORTAL_HOME_URL || "").trim() : "";
   var supabaseUrl, supabaseAnonKey, useSupabase;
   var supabase = null;
   function getSupabase() {
@@ -111,6 +113,14 @@
     }, 2500);
   }
 
+  function goToPortalHome() {
+    if (!portalHomeUrl || !/^https?:\/\//i.test(portalHomeUrl)) {
+      showToast("No hay URL del portal configurada.");
+      return;
+    }
+    window.location.href = portalHomeUrl;
+  }
+
   function setOfflineBanner(offline) {
     const banner = document.getElementById("offline-banner");
     if (banner) banner.classList.toggle("hidden", !offline);
@@ -137,6 +147,7 @@
       showScreen("app-screen");
       showView("inicio");
       ensureMyProfile();
+      seedBaseIngredientesIfNeeded();
     } else {
       showScreen("login-screen");
     }
@@ -148,6 +159,7 @@
         showScreen("app-screen");
         showView("inicio");
         ensureMyProfile();
+        seedBaseIngredientesIfNeeded();
       } else {
         showScreen("login-screen");
       }
@@ -240,7 +252,7 @@
     if (!sb || !state.user) return;
     const { data, error } = await sb
       .from("recetas")
-      .select("id, user_id, nombre, temperatura, descripcion, ingredientes_lineas, publica, updated_at")
+      .select("id, user_id, nombre, temperatura, descripcion, instrucciones, ingredientes_lineas, publica, etiquetas, favorita, updated_at")
       .order("updated_at", { ascending: false });
     if (error) {
       console.error(error);
@@ -251,12 +263,29 @@
     renderRecipeList();
   }
 
+  function recipeMatchesSearch(receta, q) {
+    if (!q) return true;
+    var ql = q.toLowerCase();
+    if ((receta.nombre || "").toLowerCase().indexOf(ql) >= 0) return true;
+    if ((receta.etiquetas || "").toLowerCase().indexOf(ql) >= 0) return true;
+    var lineas = Array.isArray(receta.ingredientes_lineas) ? receta.ingredientes_lineas : [];
+    return lineas.some(function (ln) {
+      return (ln.ingrediente || "").toLowerCase().indexOf(ql) >= 0;
+    });
+  }
+
   function renderRecipeList() {
     const list = document.getElementById("recipe-list");
     const empty = document.getElementById("empty-state");
     const q = (document.getElementById("search-recipe") || {}).value || "";
     const filtered = state.recetas.filter(function (r) {
-      return !q || r.nombre.toLowerCase().indexOf(q.toLowerCase()) >= 0;
+      return recipeMatchesSearch(r, q.trim());
+    });
+    filtered.sort(function (a, b) {
+      var favA = a.favorita ? 1 : 0;
+      var favB = b.favorita ? 1 : 0;
+      if (favA !== favB) return favB - favA;
+      return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
     });
     list.innerHTML = "";
     filtered.forEach(function (r) {
@@ -268,13 +297,111 @@
       const esDeOtro = state.user && !esMia && canManageAllRecetas();
       const badgeMia = esMia ? " <span class='badge-mia'>Tuya</span>" : "";
       const badgeOtro = esDeOtro ? " <span class='badge-otro'>De otro</span>" : "";
-      li.innerHTML = "<strong>" + escapeHtml(r.nombre) + "</strong>" + temp + badge + badgeMia + badgeOtro;
+      var etiquetasHtml = "";
+      if (r.etiquetas && String(r.etiquetas).trim()) {
+        etiquetasHtml = "<span class='recipe-item-etiquetas'>" + escapeHtml(String(r.etiquetas).trim()) + "</span>";
+      }
+      var btnFav = document.createElement("button");
+      btnFav.type = "button";
+      var puedeFavorita = state.user && r.user_id === state.user.id;
+      btnFav.className = "btn-favorita" + (r.favorita ? " is-favorita" : "");
+      btnFav.title = r.favorita ? "Quitar de favoritos" : "Marcar como favorita";
+      btnFav.setAttribute("aria-label", r.favorita ? "Quitar de favoritos" : "Marcar como favorita");
+      btnFav.textContent = r.favorita ? "♥" : "♡";
+      if (puedeFavorita) {
+        btnFav.addEventListener("click", function (e) {
+          e.stopPropagation();
+          toggleFavoritaReceta(r.id);
+        });
+      } else {
+        btnFav.disabled = true;
+        btnFav.style.opacity = r.favorita ? "1" : "0.35";
+        btnFav.style.cursor = "default";
+      }
+      var content = document.createElement("div");
+      content.className = "recipe-item-content";
+      content.innerHTML = "<strong>" + escapeHtml(r.nombre) + "</strong>" + temp + badge + badgeMia + badgeOtro + etiquetasHtml;
+      li.appendChild(btnFav);
+      li.appendChild(content);
       li.addEventListener("click", function () {
         openRecipeDetail(r.id);
       });
       list.appendChild(li);
     });
     if (empty) empty.classList.toggle("hidden", filtered.length > 0);
+  }
+
+  async function toggleFavoritaReceta(id) {
+    var receta = state.recetas.find(function (r) { return r.id === id; });
+    if (!receta || !state.user) return;
+    if (receta.user_id !== state.user.id) return;
+    var nuevaFavorita = !receta.favorita;
+    var sb = getSupabase();
+    if (!sb) return;
+    var err = (await sb.from("recetas").update({ favorita: nuevaFavorita }).eq("id", id)).error;
+    if (err) {
+      showToast("Error: " + (err.message || "no se pudo actualizar"));
+      return;
+    }
+    receta.favorita = nuevaFavorita;
+    renderRecipeList();
+    showToast(nuevaFavorita ? "Añadida a favoritos" : "Quitada de favoritos");
+  }
+
+  function fmtDetail(x) {
+    if (x === undefined || x === null || isNaN(Number(x))) return "0";
+    return (Math.round(Number(x) * 100) / 100).toString();
+  }
+
+  function scaledDetailValue(value, factor) {
+    if (value === undefined || value === null || value === "") return "";
+    var n = parseFloat(value);
+    if (isNaN(n)) return value;
+    return fmtDetail(n * factor);
+  }
+
+  function getRecetaPesoTotalGramos(receta) {
+    var lineas = Array.isArray(receta.ingredientes_lineas) ? receta.ingredientes_lineas : [];
+    var total = 0;
+    lineas.forEach(function (ln) {
+      total += parseFloat(ln.cantidad) || 0;
+    });
+    return total;
+  }
+
+  function calcFactorProduccion(receta, kg) {
+    var pesoOriginal = getRecetaPesoTotalGramos(receta);
+    if (!pesoOriginal || !kg || kg <= 0 || isNaN(kg)) return 1;
+    return (kg * 1000) / pesoOriginal;
+  }
+
+  function renderRecipeDetailTable(receta, factor) {
+    var scale = parseFloat(factor);
+    if (isNaN(scale) || scale <= 0) scale = 1;
+    var tableHtml = "";
+    const lineas = Array.isArray(receta.ingredientes_lineas) ? receta.ingredientes_lineas : [];
+    if (lineas.length) {
+      var tCant = 0, tGrasa = 0, tSng = 0, tSolTot = 0, tPod = 0, tPac = 0;
+      lineas.forEach(function (ln) {
+        var mg = (parseFloat(ln.pct_graso) || 0) * scale;
+        var sng = (parseFloat(ln.solidos_totales) || 0) * scale;
+        tCant += (parseFloat(ln.cantidad) || 0) * scale;
+        tGrasa += mg;
+        tSng += sng;
+        tSolTot += mg + sng;
+        tPod += (parseFloat(ln.pod) || 0) * scale;
+        tPac += (parseFloat(ln.pac) || 0) * scale;
+      });
+      tableHtml = "<table class='detail-table'><thead><tr><th>Ingrediente</th><th style='text-align: right;'>Cant. (g)</th><th style='text-align: right;'>% MG</th><th style='text-align: right;'>Sólidos tot.</th><th style='text-align: right;'>P.O.D</th><th style='text-align: right;'>P.A.C</th></tr></thead><tbody>";
+      lineas.forEach(function (ln) {
+        var mg = (parseFloat(ln.pct_graso) || 0) * scale;
+        var sng = (parseFloat(ln.solidos_totales) || 0) * scale;
+        var st = mg + sng;
+        tableHtml += "<tr><td>" + escapeHtml(ln.ingrediente || "") + "</td><td style='text-align: right;'>" + scaledDetailValue(ln.cantidad, scale) + "</td><td style='text-align: right;'>" + fmtDetail(mg) + "</td><td style='text-align: right;'>" + fmtDetail(st) + "</td><td style='text-align: right;'>" + scaledDetailValue(ln.pod, scale) + "</td><td style='text-align: right;'>" + scaledDetailValue(ln.pac, scale) + "</td></tr>";
+      });
+      tableHtml += "</tbody><tfoot><tr><th>Totales</th><th style='text-align: right;'>" + fmtDetail(tCant) + "</th><th style='text-align: right;'>" + fmtDetail(tGrasa) + "</th><th style='text-align: right;'>" + fmtDetail(tSolTot) + "</th><th style='text-align: right;'>" + fmtDetail(tPod) + "</th><th style='text-align: right;'>" + fmtDetail(tPac) + "</th></tr></tfoot></table>";
+    }
+    document.getElementById("recipe-detail-table").innerHTML = tableHtml;
   }
 
   function openRecipeDetail(id) {
@@ -288,29 +415,28 @@
     if (!receta) return;
     var topHtml = "<h2>" + escapeHtml(receta.nombre) + "</h2>";
     if (receta.descripcion) topHtml += "<p>" + escapeHtml(receta.descripcion) + "</p>";
-    document.getElementById("recipe-detail-top").innerHTML = topHtml;
-    var tableHtml = "";
-    const lineas = Array.isArray(receta.ingredientes_lineas) ? receta.ingredientes_lineas : [];
-    if (lineas.length) {
-      var tCant = 0, tGrasa = 0, tSng = 0, tPod = 0, tPac = 0;
-      lineas.forEach(function (ln) {
-        tCant += parseFloat(ln.cantidad) || 0;
-        tGrasa += parseFloat(ln.pct_graso) || 0;
-        tSng += parseFloat(ln.solidos_totales) || 0;
-        tPod += parseFloat(ln.pod) || 0;
-        tPac += parseFloat(ln.pac) || 0;
+    if (receta.etiquetas && String(receta.etiquetas).trim()) {
+      topHtml += "<div class='recipe-detail-etiquetas'>";
+      String(receta.etiquetas).split(",").forEach(function (tag) {
+        var t = tag.trim();
+        if (t) topHtml += "<span class='etiqueta-badge'>" + escapeHtml(t) + "</span>";
       });
-      function fmtDetail(x) {
-        if (x === undefined || x === null || isNaN(Number(x))) return "0";
-        return (Math.round(Number(x) * 100) / 100).toString();
-      }
-      tableHtml = "<table class='detail-table'><thead><tr><th>Ingrediente</th><th style='text-align: right;'>Cant. (g)</th><th style='text-align: right;'>% MG</th><th style='text-align: right;'>Sólidos</th><th style='text-align: right;'>P.O.D</th><th style='text-align: right;'>P.A.C</th></tr></thead><tbody>";
-      lineas.forEach(function (ln) {
-        tableHtml += "<tr><td>" + escapeHtml(ln.ingrediente || "") + "</td><td style='text-align: right;'>" + (ln.cantidad ?? "") + "</td><td style='text-align: right;'>" + (ln.pct_graso ?? "") + "</td><td style='text-align: right;'>" + (ln.solidos_totales ?? "") + "</td><td style='text-align: right;'>" + (ln.pod ?? "") + "</td><td style='text-align: right;'>" + (ln.pac ?? "") + "</td></tr>";
-      });
-      tableHtml += "</tbody><tfoot><tr><th>Totales</th><th style='text-align: right;'>" + fmtDetail(tCant) + "</th><th style='text-align: right;'>" + fmtDetail(tGrasa) + "</th><th style='text-align: right;'>" + fmtDetail(tSng) + "</th><th style='text-align: right;'>" + fmtDetail(tPod) + "</th><th style='text-align: right;'>" + fmtDetail(tPac) + "</th></tr></tfoot></table>";
+      topHtml += "</div>";
     }
-    document.getElementById("recipe-detail-table").innerHTML = tableHtml;
+    document.getElementById("recipe-detail-top").innerHTML = topHtml;
+    var targetKgInput = document.getElementById("recipe-target-kg");
+    if (targetKgInput) targetKgInput.value = "";
+    renderRecipeDetailTable(receta, 1);
+    var instEl = document.getElementById("recipe-detail-instrucciones");
+    if (instEl) {
+      if (receta.instrucciones) {
+        instEl.innerHTML = "<h3>Preparación</h3><p style='white-space: pre-wrap;'>" + escapeHtml(receta.instrucciones) + "</p>";
+        instEl.classList.remove("hidden");
+      } else {
+        instEl.innerHTML = "";
+        instEl.classList.add("hidden");
+      }
+    }
     state.editingRecipeId = id;
     var detailActions = document.querySelector("#detail-section .detail-actions");
     var shareRow = document.querySelector("#detail-section .detail-share-row");
@@ -360,6 +486,10 @@
     }) : null;
     document.getElementById("recipe-name").value = receta ? receta.nombre : "";
     document.getElementById("recipe-desc").value = receta ? (receta.descripcion || "") : "";
+    var inpInst = document.getElementById("recipe-instrucciones");
+    if (inpInst) inpInst.value = receta ? (receta.instrucciones || "") : "";
+    var inpEtiquetas = document.getElementById("recipe-etiquetas");
+    if (inpEtiquetas) inpEtiquetas.value = receta ? (receta.etiquetas || "") : "";
     var chkPublica = document.getElementById("recipe-publica");
     if (chkPublica) chkPublica.checked = !!(receta && receta.publica);
     const lineas = (receta && Array.isArray(receta.ingredientes_lineas)) ? receta.ingredientes_lineas : [];
@@ -508,32 +638,44 @@
       const celda = tr.querySelector("." + clase);
       if (celda) celda.textContent = val != null && val !== "" ? String(val) : "0";
     }
-    setCelda("celda-pct-graso", g(baseGraso) || "");
-    setCelda("celda-solidos", g(baseSolidos) || "");
+    var vMg = g(baseGraso);
+    var vSng = g(baseSolidos);
+    var vSolTot = vMg + vSng;
+    setCelda("celda-pct-graso", vMg || "");
+    setCelda("celda-solidos", vSng || "");
+    setCelda("celda-solidos-tot", vSolTot ? (Math.round(vSolTot * 100) / 100).toString() : "0");
     setCelda("celda-pod", g(basePod) || "");
     setCelda("celda-pac", g(basePac) || "");
-    actualizarCeldaSolidosTot(tr);
     actualizarCeldaPrecioLinea(tr);
     actualizarTotalesReceta();
   }
 
+  function calcTemperaturaServicio(tPacGramos, tCant) {
+    if (!tCant || tPacGramos === 0 || isNaN(tPacGramos)) return null;
+    var pctPac = (tPacGramos / tCant) * 100;
+    return Math.round(pctPac * -0.65 * 10) / 10;
+  }
+
   function actualizarTotalesReceta() {
     const rows = document.querySelectorAll("#ingredientes-tbody tr");
-    let tCant = 0, tGrasa = 0, tSng = 0, tPod = 0, tPac = 0, tPrecio = 0;
+    let tCant = 0, tGrasa = 0, tSng = 0, tSolTot = 0, tPod = 0, tPac = 0, tPrecio = 0;
     rows.forEach(function (tr) {
       const vCant = parseFloat((tr.querySelector(".inp-cantidad") || {}).value) || 0;
       const vGrasa = valorCelda(tr, "celda-pct-graso") || 0;
       const vSng = valorCelda(tr, "celda-solidos") || 0;
+      const vSolTot = vGrasa + vSng;
       const vPod = valorCelda(tr, "celda-pod") || 0;
       const vPac = valorCelda(tr, "celda-pac") || 0;
       const vPrecioLinea = valorCelda(tr, "celda-precio-linea") || 0;
       tCant += vCant;
       tGrasa += vGrasa;
       tSng += vSng;
+      tSolTot += vSolTot;
       tPod += vPod;
       tPac += vPac;
       tPrecio += vPrecioLinea;
-      actualizarCeldaSolidosTot(tr);
+      var celdaSolTot = tr.querySelector(".celda-solidos-tot");
+      if (celdaSolTot) celdaSolTot.textContent = vSolTot ? (Math.round(vSolTot * 100) / 100).toString() : "0";
       actualizarCeldaPrecioLinea(tr);
     });
     function fmt(x) {
@@ -550,7 +692,7 @@
     if (elCant) elCant.textContent = fmt(tCant);
     if (elGrasa) elGrasa.textContent = fmt(tGrasa);
     if (elSng) elSng.textContent = fmt(tSng);
-    if (elSolTot) elSolTot.textContent = fmt(tGrasa + tSng);
+    if (elSolTot) elSolTot.textContent = fmt(tSolTot);
     if (elPod) elPod.textContent = fmt(tPod);
     if (elPac) elPac.textContent = fmt(tPac);
     if (elPrecio) elPrecio.textContent = fmt(tPrecio);
@@ -561,7 +703,7 @@
     var pctCant = 100;
     var pctGrasa = tCant ? (tGrasa / tCant * 100) : null;
     var pctSng = tCant ? (tSng / tCant * 100) : null;
-    var pctSolTot = tCant ? ((tGrasa + tSng) / tCant * 100) : null;
+    var pctSolTot = tCant ? (tSolTot / tCant * 100) : null;
     var pctPod = tCant ? (tPod / tCant * 100) : null;
     var pctPac = tCant ? (tPac / tCant * 100) : null;
     var elPctCant = document.getElementById("pct-cantidad");
@@ -577,16 +719,74 @@
     if (elPctPod) elPctPod.textContent = fmtPct(pctPod);
     if (elPctPac) elPctPac.textContent = fmtPct(pctPac);
     var elTemp = document.getElementById("recipe-temperatura");
-    var tempCalculada = (tPac !== 0 && !isNaN(tPac)) ? (Math.round((tPac / -2) * 10) / 10).toString() : "";
-    if (elTemp) elTemp.value = tempCalculada;
+    var tempCalculada = calcTemperaturaServicio(tPac, tCant);
+    var tempStr = tempCalculada != null ? tempCalculada.toString() : "";
+    if (elTemp) elTemp.value = tempStr;
     var elResumenTemp = document.getElementById("resumen-temperatura");
     var elResumenCosto = document.getElementById("resumen-costo-litro");
     var elResumenCant = document.getElementById("resumen-total-cant");
-    if (elResumenTemp) elResumenTemp.textContent = tempCalculada ? tempCalculada + " °C" : "—";
+    if (elResumenTemp) elResumenTemp.textContent = tempStr ? tempStr + " °C" : "—";
     if (elResumenCant) elResumenCant.textContent = tCant ? fmt(tCant) : "—";
     var denom = tCant > 0 ? tCant * 1.30 : 0;
     var costoPorLitro = denom > 0 ? (tPrecio / denom) * 1000 : null;
     if (elResumenCosto) elResumenCosto.textContent = (costoPorLitro != null && !isNaN(costoPorLitro)) ? (Math.round(costoPorLitro * 100) / 100).toString() : "—";
+    var inpPorcionesLitro = document.getElementById("recipe-porciones-litro");
+    var porcionesLitro = inpPorcionesLitro ? parseInt(inpPorcionesLitro.value, 10) : 10;
+    if (!porcionesLitro || porcionesLitro <= 0 || isNaN(porcionesLitro)) porcionesLitro = 10;
+    var elResumenCostoPorcion = document.getElementById("resumen-costo-porcion");
+    var costoPorPorcion = (costoPorLitro != null && !isNaN(costoPorLitro) && porcionesLitro > 0)
+      ? costoPorLitro / porcionesLitro
+      : null;
+    if (elResumenCostoPorcion) {
+      elResumenCostoPorcion.textContent = (costoPorPorcion != null && !isNaN(costoPorPorcion))
+        ? "$" + (Math.round(costoPorPorcion * 100) / 100).toFixed(2)
+        : "—";
+    }
+    var inpPrecioVenta = document.getElementById("recipe-precio-venta");
+    var elResumenMargen = document.getElementById("resumen-margen");
+    var precioVenta = inpPrecioVenta ? parseFloat(inpPrecioVenta.value) : 0;
+    if (elResumenMargen) {
+      if (precioVenta > 0 && costoPorLitro != null && !isNaN(costoPorLitro)) {
+        var margen = ((precioVenta - costoPorLitro) / precioVenta) * 100;
+        elResumenMargen.textContent = (Math.round(margen * 100) / 100).toFixed(2) + " %";
+      } else {
+        elResumenMargen.textContent = "—";
+      }
+    }
+    var elResumenAgua = document.getElementById("resumen-agua");
+    var pctAgua = pctSolTot != null ? 100 - pctSolTot : null;
+    if (elResumenAgua) {
+      if (pctAgua != null && !isNaN(pctAgua) && tCant > 0) {
+        elResumenAgua.textContent = (Math.round(pctAgua * 100) / 100).toFixed(2) + " %";
+      } else {
+        elResumenAgua.textContent = "—";
+      }
+    }
+    function aplicarColorSemaforo(el, pct, enRango) {
+      if (!el) return;
+      if (pct == null || isNaN(pct) || !tCant) {
+        el.style.color = "";
+        return;
+      }
+      el.style.color = enRango ? "#2ecc71" : "#e74c3c";
+    }
+    var mgOk = pctGrasa != null && pctGrasa >= 6 && pctGrasa <= 12;
+    var sngOk = pctSng != null && pctSng >= 8 && pctSng <= 11;
+    var sngRojo = pctSng != null && (pctSng < 8 || pctSng > 11.5);
+    var stOk = pctSolTot != null && pctSolTot >= 36 && pctSolTot <= 40;
+    aplicarColorSemaforo(elPctGrasa, pctGrasa, mgOk);
+    if (elPctSng) {
+      if (pctSng == null || isNaN(pctSng) || !tCant) {
+        elPctSng.style.color = "";
+      } else if (sngOk) {
+        elPctSng.style.color = "#2ecc71";
+      } else if (sngRojo) {
+        elPctSng.style.color = "#e74c3c";
+      } else {
+        elPctSng.style.color = "";
+      }
+    }
+    aplicarColorSemaforo(elPctSolTot, pctSolTot, stOk);
   }
 
   function setupIngredienteAutocomplete(tr) {
@@ -703,13 +903,14 @@
     const id = document.getElementById("recipe-id").value || null;
     const nombre = document.getElementById("recipe-name").value.trim();
     const descripcion = document.getElementById("recipe-desc").value.trim();
+    const instrucciones = document.getElementById("recipe-instrucciones") ? document.getElementById("recipe-instrucciones").value.trim() : "";
     const ingredientes_lineas = getIngredientesLineasFromForm();
-    var tPacForm = 0;
+    var tPacForm = 0, tCantForm = 0;
     ingredientes_lineas.forEach(function (lin) {
-      var tot = (lin.cantidad || 0) * (parseFloat(lin.pac) || 0) / 100;
-      tPacForm += isNaN(tot) ? 0 : tot;
+      tPacForm += parseFloat(lin.pac) || 0;
+      tCantForm += parseFloat(lin.cantidad) || 0;
     });
-    const temperatura = (tPacForm !== 0 && !isNaN(tPacForm)) ? (Math.round((tPacForm / -2) * 10) / 10) : null;
+    const temperatura = calcTemperaturaServicio(tPacForm, tCantForm);
     const sb = getSupabase();
     if (!sb || !state.user) return;
     const ownerId = (id && state.recetas.find(function (r) { return r.id === id; })) ? state.recetas.find(function (r) { return r.id === id; }).user_id : state.user.id;
@@ -724,13 +925,16 @@
       return;
     }
     var chkPublica = document.getElementById("recipe-publica");
+    var inpEtiquetas = document.getElementById("recipe-etiquetas");
     const recetaExistente = id ? state.recetas.find(function (r) { return r.id === id; }) : null;
     const row = {
       user_id: (id && recetaExistente) ? recetaExistente.user_id : state.user.id,
       nombre,
       temperatura: isNaN(temperatura) ? null : temperatura,
       descripcion,
+      instrucciones,
       ingredientes_lineas,
+      etiquetas: inpEtiquetas ? inpEtiquetas.value.trim() : "",
       publica: !!(chkPublica && chkPublica.checked),
     };
     if (id) {
@@ -825,6 +1029,10 @@
     html += "<p class='meta'>Temperatura: " + temp + "</p>";
     if (receta.descripcion) html += "<p>" + (receta.descripcion || "").replace(/</g, "&lt;") + "</p>";
     html += tableRows;
+    if (receta.instrucciones && String(receta.instrucciones).trim()) {
+      html += "<h3 style='margin-top: 24px;'>Preparación</h3>";
+      html += "<p style='line-height: 1.6;'>" + escapeHtml(String(receta.instrucciones)).replace(/\n/g, "<br>") + "</p>";
+    }
     html += "</body></html>";
     var win = window.open("", "_blank");
     if (!win) {
@@ -907,6 +1115,48 @@
   }
 
   // --- Base ingredientes ---
+  async function seedBaseIngredientesIfNeeded() {
+    const sb = getSupabase();
+    if (!sb || !state.user) return;
+    var countRes = await sb.from("base_ingredientes").select("id", { count: "exact", head: true });
+    if (countRes.error) {
+      console.warn("seedBaseIngredientesIfNeeded:", countRes.error);
+      return;
+    }
+    if ((countRes.count || 0) > 0) return;
+    var catalogo = [
+      { ingrediente: "Leche Entera", pct_graso: 3.5, solidos_totales: 8.5, pod: 4.5, pac: 4.5, azucar: 4.8, lactosa: 4.8, proteina: 3.2, precio: 0 },
+      { ingrediente: "Crema de leche 35%", pct_graso: 35, solidos_totales: 2.5, pod: 2, pac: 2, azucar: 2.5, lactosa: 2.5, proteina: 1.5, precio: 0 },
+      { ingrediente: "Leche en Polvo Descremada", pct_graso: 1, solidos_totales: 96, pod: 52, pac: 52, azucar: 52, lactosa: 52, proteina: 36, precio: 0 },
+      { ingrediente: "Sacarosa", pct_graso: 0, solidos_totales: 100, pod: 100, pac: 100, azucar: 100, lactosa: 0, proteina: 0, precio: 0 },
+      { ingrediente: "Dextrosa", pct_graso: 0, solidos_totales: 100, pod: 70, pac: 190, azucar: 100, lactosa: 0, proteina: 0, precio: 0 },
+      { ingrediente: "Glucosa 38DE", pct_graso: 0, solidos_totales: 80, pod: 38, pac: 76, azucar: 80, lactosa: 0, proteina: 0, precio: 0 },
+      { ingrediente: "Neutro", pct_graso: 0, solidos_totales: 100, pod: 0, pac: 0, azucar: 0, lactosa: 0, proteina: 0, precio: 0 },
+      { ingrediente: "Agua", pct_graso: 0, solidos_totales: 0, pod: 0, pac: 0, azucar: 0, lactosa: 0, proteina: 0, precio: 0 },
+    ];
+    var rows = catalogo.map(function (ing) {
+      return {
+        user_id: state.user.id,
+        ingrediente: ing.ingrediente,
+        pct_graso: ing.pct_graso,
+        solidos_totales: ing.solidos_totales,
+        pod: ing.pod,
+        pac: ing.pac,
+        azucar: ing.azucar,
+        lactosa: ing.lactosa,
+        proteina: ing.proteina,
+        precio: ing.precio,
+      };
+    });
+    var insertRes = await sb.from("base_ingredientes").insert(rows);
+    if (insertRes.error) {
+      console.warn("seedBaseIngredientesIfNeeded insert:", insertRes.error);
+      return;
+    }
+    await loadBaseIngredientes();
+    showToast("Ingredientes base cargados automáticamente");
+  }
+
   async function loadBaseIngredientes() {
     const sb = getSupabase();
     if (!sb || !state.user) return;
@@ -1251,6 +1501,8 @@
     }
     const btnLogout = document.getElementById("btn-logout");
     if (btnLogout) btnLogout.addEventListener("click", logout);
+    const btnGoPortal = document.getElementById("btn-go-portal");
+    if (btnGoPortal) btnGoPortal.addEventListener("click", goToPortalHome);
 
     document.querySelectorAll(".nav-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -1353,6 +1605,25 @@
 
     const searchRecipe = document.getElementById("search-recipe");
     if (searchRecipe) searchRecipe.addEventListener("input", renderRecipeList);
+    const targetKg = document.getElementById("recipe-target-kg");
+    if (targetKg) {
+      targetKg.addEventListener("input", function () {
+        if (!state.editingRecipeId) return;
+        var receta = state.recetas.find(function (r) { return r.id === state.editingRecipeId; });
+        if (!receta) return;
+        var kg = parseFloat(targetKg.value);
+        var factor = calcFactorProduccion(receta, kg);
+        renderRecipeDetailTable(receta, factor);
+      });
+    }
+    const inpPrecioVenta = document.getElementById("recipe-precio-venta");
+    if (inpPrecioVenta) {
+      inpPrecioVenta.addEventListener("input", actualizarTotalesReceta);
+    }
+    const inpPorcionesLitro = document.getElementById("recipe-porciones-litro");
+    if (inpPorcionesLitro) {
+      inpPorcionesLitro.addEventListener("input", actualizarTotalesReceta);
+    }
     const searchIngrediente = document.getElementById("search-ingrediente");
     if (searchIngrediente) searchIngrediente.addEventListener("input", renderBaseIngredientes);
 

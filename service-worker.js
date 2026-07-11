@@ -1,5 +1,5 @@
-const CACHE = "recetas-helados-v4";
-const urls = ["index.html", "styles.css?v=4", "app.js?v=4", "manifest.json", "config.js"];
+const CACHE = "recetas-helados-v7";
+const urls = ["index.html", "styles.css?v=5", "app.js?v=5", "manifest.json", "config.js"];
 
 self.addEventListener("install", function (e) {
   e.waitUntil(

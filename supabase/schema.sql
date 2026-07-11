@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS public.recetas (
   temperatura NUMERIC(6,2) DEFAULT NULL,  -- ej: -14, -12 (°C)
   descripcion TEXT DEFAULT '',
   ingredientes_lineas JSONB DEFAULT '[]',
+  etiquetas TEXT DEFAULT '',
+  favorita BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
